@@ -13,18 +13,6 @@ type ApiClient struct {
 	Cache *pokecache.Cache
 }
 
-type LocationsResponse struct {
-	Count    int            `json:"count"`
-	Next     *string        `json:"next"`
-	Previous *string        `json:"previous"`
-	Results  []LocationArea `json:"results"`
-}
-
-type LocationArea struct {
-	Name string `json:"name"`
-	Url  string `json:"url"`
-}
-
 func (client *ApiClient) RequestLocationArea(url string) LocationsResponse {
 	value, exists := client.Cache.Get(url)
 	var body []byte
@@ -50,6 +38,28 @@ func (client *ApiClient) RequestLocationArea(url string) LocationsResponse {
 	return result
 }
 
-func (client *ApiClient) RequestPokemons(pokemonName string) {
-
+func (client *ApiClient) RequestPokemons(areaName string) LocationAreaResponse {
+	url := LocationsUrl + "/" + areaName
+	value, exists := client.Cache.Get(url)
+	var body []byte
+	if exists {
+		body = value
+	} else {
+		res, err := http.Get(url)
+		if err != nil {
+			log.Fatal(err)
+		}
+		resBody, err := io.ReadAll(res.Body)
+		defer res.Body.Close()
+		if res.StatusCode > 299 {
+			log.Fatalf("Failed with status code: %d and body %s", res.StatusCode, resBody)
+		}
+		client.Cache.Add(url, resBody)
+		body = resBody
+	}
+	var result LocationAreaResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		log.Fatal("Failed to unmarshal")
+	}
+	return result
 }

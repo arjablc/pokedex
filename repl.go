@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/arjablc/pokedex/internals/api"
 	"os"
@@ -16,6 +17,7 @@ type cliCommand struct {
 type UrlConfig struct {
 	previousUrl *string
 	nextUrl     *string
+	areaName    *string
 }
 
 var commandsMap = map[string]cliCommand{
@@ -38,6 +40,11 @@ var commandsMap = map[string]cliCommand{
 		name:        "map",
 		description: "Show the previous location areas",
 		callback:    commandMapb,
+	},
+	"explore": {
+		name:        "explore",
+		description: "Explore the given area, return the pokemons found",
+		callback:    commandExplore,
 	},
 }
 
@@ -88,5 +95,24 @@ func commandMap(config *UrlConfig, apiClient *api.ApiClient) error {
 	for _, location := range locationResponse.Results {
 		println(location.Name)
 	}
+	return nil
+}
+
+func commandExplore(config *UrlConfig, apiClient *api.ApiClient) error {
+	if config.areaName == nil {
+		return errors.New("No location provided")
+	}
+	locationName := config.areaName
+	fmt.Println(*locationName)
+	url := config.nextUrl
+	if url == nil {
+		url = &api.LocationsUrl
+	}
+
+	pokemonsResponse := apiClient.RequestPokemons(*locationName)
+	for _, pokemon := range pokemonsResponse.PokemonEncounters {
+		fmt.Println(pokemon.Pokemon.Name)
+	}
+
 	return nil
 }

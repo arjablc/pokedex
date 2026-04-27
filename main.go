@@ -29,7 +29,13 @@ func main() {
 		command := words[0]
 		entry, exists := commandsMap[command]
 		if exists {
-			entry.callback(&config, &apiClient)
+			if command == "explore" {
+				config.areaName = &words[1]
+			}
+			err := entry.callback(&config, &apiClient)
+			if err != nil {
+				fmt.Println(err)
+			}
 			continue
 		}
 		fmt.Println("Unknown command")
