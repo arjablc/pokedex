@@ -11,13 +11,14 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*UrlConfig, *api.ApiClient) error
+	callback    func(*config, ...string) error
 }
 
-type UrlConfig struct {
+type config struct {
 	previousUrl *string
 	nextUrl     *string
 	areaName    *string
+	apiClient   *api.ApiClient
 }
 
 var commandsMap = map[string]cliCommand{
@@ -54,7 +55,7 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func commandHelp(config *UrlConfig, _ *api.ApiClient) error {
+func commandHelp(config *config, args ...string) error {
 	fmt.Println("Welcome to the Pokedex!")
 	fmt.Println("Usage:")
 	fmt.Println("help: Displays a help message")
@@ -62,19 +63,19 @@ func commandHelp(config *UrlConfig, _ *api.ApiClient) error {
 	return nil
 }
 
-func commandExit(config *UrlConfig, _ *api.ApiClient) error {
+func commandExit(config *config, args ...string) error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandMapb(config *UrlConfig, apiClient *api.ApiClient) error {
+func commandMapb(config *config, args ...string) error {
 	url := config.previousUrl
 	if url == nil {
 		println("You're on the first page")
 		return nil
 	}
-	locationResponse := apiClient.RequestLocationArea(*url)
+	locationResponse := config.apiClient.RequestLocationArea(*url)
 	config.nextUrl = locationResponse.Next
 	config.previousUrl = locationResponse.Previous
 	for _, location := range locationResponse.Results {
@@ -83,13 +84,13 @@ func commandMapb(config *UrlConfig, apiClient *api.ApiClient) error {
 	return nil
 }
 
-func commandMap(config *UrlConfig, apiClient *api.ApiClient) error {
+func commandMap(config *config, args ...string) error {
 	url := config.nextUrl
 	if url == nil {
 		url = &api.LocationsUrl
 	}
 
-	locationResponse := apiClient.RequestLocationArea(*url)
+	locationResponse := config.apiClient.RequestLocationArea(*url)
 	config.nextUrl = locationResponse.Next
 	config.previousUrl = locationResponse.Previous
 	for _, location := range locationResponse.Results {
@@ -98,21 +99,19 @@ func commandMap(config *UrlConfig, apiClient *api.ApiClient) error {
 	return nil
 }
 
-func commandExplore(config *UrlConfig, apiClient *api.ApiClient) error {
-	if config.areaName == nil {
+func commandExplore(config *config, args ...string) error {
+
+	if len(args) != 1 {
 		return errors.New("No location provided")
 	}
-	locationName := config.areaName
-	fmt.Println(*locationName)
+	locationName := args[0]
 	url := config.nextUrl
 	if url == nil {
 		url = &api.LocationsUrl
 	}
-
-	pokemonsResponse := apiClient.RequestPokemons(*locationName)
+	pokemonsResponse := config.apiClient.RequestPokemons(locationName)
 	for _, pokemon := range pokemonsResponse.PokemonEncounters {
 		fmt.Println(pokemon.Pokemon.Name)
 	}
-
 	return nil
 }

@@ -13,9 +13,9 @@ import (
 func main() {
 
 	scanner := bufio.NewScanner(os.Stdin)
-	config := UrlConfig{previousUrl: nil, nextUrl: nil}
 	cache := pokecache.NewCache(5 * time.Second)
 	apiClient := api.ApiClient{Cache: cache}
+	cfg := config{previousUrl: nil, nextUrl: nil, apiClient: &apiClient}
 	for {
 		fmt.Print("Pokedex > ")
 		if !scanner.Scan() {
@@ -29,10 +29,8 @@ func main() {
 		command := words[0]
 		entry, exists := commandsMap[command]
 		if exists {
-			if command == "explore" {
-				config.areaName = &words[1]
-			}
-			err := entry.callback(&config, &apiClient)
+			args := words[1:]
+			err := entry.callback(&cfg, args...)
 			if err != nil {
 				fmt.Println(err)
 			}
